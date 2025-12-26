@@ -4,29 +4,47 @@ using UnityEngine;
 
 public class Interact_Manager : MonoBehaviour
 {
-    [SerializeField] bool curOpenState; // указываем для каждой двери отдельно
+    public bool isOpen;
+
+    // Добавь эти поля
+    [SerializeField] float openAngle = 90f; // Угол открытия двери
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
-            StartCoroutine(OnInteract());
+        if (other.CompareTag("Player") || other.CompareTag("Enemy"))
+            StartCoroutine(OnInteract(other.transform));
     }
 
-    IEnumerator OnInteract()
+    public IEnumerator OnInteract(Transform activator)
     {
-        Vector3 currentEulerAngles = transform.eulerAngles;
+        yield return new WaitForSeconds(0.3f);
 
-        if (curOpenState == true){
-            transform.DORotate(new Vector3(currentEulerAngles.x, currentEulerAngles.y - 90f, currentEulerAngles.z), 1f);
-            curOpenState = false;
+        // Получаем направление от двери к активатору
+        Vector3 directionToActivator = (activator.position - transform.position).normalized;
+
+        // Определяем, в какую сторону должна открываться дверь
+        // Предполагаем, что forward двери - это её нормальное направление
+        Vector3 doorForward = transform.forward; // или transform.right, смотря как ориентирована дверь
+
+        // Вычисляем угол поворота в зависимости от положения активатора
+        float dotProduct = Vector3.Dot(doorForward, directionToActivator);
+
+        Vector3 targetRotation;
+        if (dotProduct > 0) // Активатор спереди двери
+        {
+            // Открываем в противоположную сторону (назад)
+            targetRotation = new Vector3(0f, isOpen ? 0f : -openAngle, 0f);
         }
-        else if (curOpenState == false){
-            transform.DORotate(new Vector3(currentEulerAngles.x, currentEulerAngles.y + 90f, currentEulerAngles.z), 1f);
-            curOpenState = true;
+        else // Активатор сзади двери
+        {
+            // Открываем в противоположную сторону (вперёд)
+            targetRotation = new Vector3(0f, isOpen ? 0f : openAngle, 0f);
         }
 
-        yield return new WaitForSecondsRealtime(3f);
+        transform.DOLocalRotate(targetRotation, 1f);
+
+        isOpen = !isOpen;
+
+        yield return new WaitForSeconds(3f);
     }
 }
-
-//Объяснить 2 сокращения в коде и мб ещё одно
